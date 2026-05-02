@@ -53,7 +53,7 @@ export async function downloadMapTile(lat, lon, zoom, cachePath) {
 
     return file.get_path(); 
   } catch (e) {
-    console.error(`[MapInfo] Erro ao baixar mapa: ${e.message}`);
+    console.error(`[MapInfo] Error downloading map: ${e.message}`);
     return null;
   }
 }

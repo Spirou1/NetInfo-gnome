@@ -16,7 +16,7 @@ export async function fetchIPData() {
     );
 
     if (message.status_code !== Soup.Status.OK) {
-      console.error(`[NetInfo] Erro HTTP: ${message.status_code}`);
+      console.error(`[NetInfo] HTTP Error: ${message.status_code}`);
       return null;
     }
 
@@ -29,10 +29,10 @@ export async function fetchIPData() {
       latitude: data.latitude,
       longitude: data.longitude,
       city: data.city,
-      isp: data.isp,
+      isp: data.connection?.isp,
     };
   } catch (e) {
-    console.error(`[NetInfo] Erro na requisição: ${e.message}`);
+    console.error(`[NetInfo] Errror while making request: ${e.message}`);
     return null;
   }
 }

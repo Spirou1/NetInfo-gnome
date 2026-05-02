@@ -1,4 +1,6 @@
 import { fetchIPData, fetchVPNname } from './netInfo.js';
+import { downloadMapTile } from './mapUtils.js';
+
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -37,11 +39,36 @@ class NetInfoIndicator extends PanelMenu.Button {
     }
 
     _buildMenu() {
+        this.titleItem = new PopupMenu.PopupMenuItem('NetInfo Gnome Extension V0.1')
+        this.menu.addMenuItem(this.titleItem);
+
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
         this.ipMenuItem = new PopupMenu.PopupMenuItem('IP: Fetching...', { reactive: false });
         this.menu.addMenuItem(this.ipMenuItem);
 
+        this.cityMenuItem = new PopupMenu.PopupMenuItem('City: ...', { reactive: false });
+        this.menu.addMenuItem(this.cityMenuItem);
+
+        this.ispMenuItem = new PopupMenu.PopupMenuItem('ISP: ...', { reactive: false });
+        this.menu.addMenuItem(this.ispMenuItem);
+
         this.vpnMenuItem = new PopupMenu.PopupMenuItem('VPN: Checking...', { reactive: false });
         this.menu.addMenuItem(this.vpnMenuItem);
+
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        this.mapTitle = new PopupMenu.PopupMenuItem('Geolocation:', { reactive: false });
+        this.menu.addMenuItem(this.mapTitle);
+        this.mapContainer = new PopupMenu.PopupBaseMenuItem({ reactive: false, can_focus: false });
+        this.mapBin = new St.Bin({
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+            style: 'border-radius: 12px; width: 256px; height: 256px; margin: 10px; background-color: #333;'
+        });
+        
+        this.mapContainer.add_child(this.mapBin);
+        this.menu.addMenuItem(this.mapContainer);
     }
     
     async _updateMenuData() {
@@ -49,11 +76,34 @@ class NetInfoIndicator extends PanelMenu.Button {
             const ipData = await fetchIPData();
             const vpn = fetchVPNname();
 
+            if (!this.label) return;
+
             if (ipData) {
-                this.label.set_text(`${ipData.flag} IP: ${ipData.ip}`);
+                this.label.set_text(` ${ipData.flag} IP: ${ipData.ip}`);
                 this.ipMenuItem.label.set_text(`Public IP: ${ipData.flag} ${ipData.ip}`);
+                this.cityMenuItem.label.set_text(`City: ${ipData.city || 'Unknown'}`);
+                this.ispMenuItem.label.set_text(`ISP: ${ipData.isp || 'Unknown'}`);
+
+                if (ipData.latitude && ipData.longitude) {
+                    const cacheDir = this._extension.dir.get_child('cache').get_path();
+                    const mapPath = await downloadMapTile(ipData.latitude, ipData.longitude, 12, cacheDir);
+
+                    if (mapPath && this.mapBin) {
+                        this.mapBin.style = `
+                            border-radius: 12px;
+                            width: 256px; 
+                            height: 256px; 
+                            margin: 10px;
+                            background-image: url("file://${mapPath}");
+                            background-size: cover;
+                        `;
+                    }
+                }
             } else {
+                this.label.set_text(' API Offline'); 
                 this.ipMenuItem.label.set_text('Public IP: Not found');
+                this.cityMenuItem.label.set_text('City: Not found');
+                this.ispMenuItem.label.set_text('ISP: Not found');
             }
 
             if (vpn) {
@@ -64,8 +114,10 @@ class NetInfoIndicator extends PanelMenu.Button {
 
         } catch (e) {
             console.error(`[NetInfo] Update error: ${e.message}`);
-            console.error(e.stack); 
-            this.label.set_text(' Error');
+
+            if (this.label) { 
+                this.label.set_text(` Err: ${e.message}`);
+            }
         }
     }
 
