@@ -1,5 +1,6 @@
 import { fetchIPData, fetchVPNname } from './netInfo.js';
 import { downloadMapTile } from './mapUtils.js';
+import { SpeedMeter } from './speedMeter.js';
 
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
@@ -15,6 +16,7 @@ class NetInfoIndicator extends PanelMenu.Button {
         super._init(0.0, 'NetInfoIndicator', false);
         
         this._extension = extensionObject;
+        this._speedMeter = new SpeedMeter();
 
         this.box = new St.BoxLayout({
             style_class: 'panel-button-content'
@@ -42,6 +44,7 @@ class NetInfoIndicator extends PanelMenu.Button {
 
         this._buildMenu();
         this._updateMenuData();
+        this._speedMeter.start();
     }
 
     _buildMenu() {
@@ -98,6 +101,10 @@ class NetInfoIndicator extends PanelMenu.Button {
         this.infoBox.add_child(this.cityLabel);
         this.infoBox.add_child(this.ispLabel);
         this.infoBox.add_child(this.vpnLabel);
+
+        let speedLabel = this._speedMeter.getWidget();
+        speedLabel.add_style_class_name('labels-text'); 
+        this.infoBox.add_child(speedLabel);
 
         this.topSection.add_child(this.infoBox);
         
@@ -195,6 +202,10 @@ class NetInfoIndicator extends PanelMenu.Button {
     }
 
     destroy() {
+        if (this._speedMeter) {
+            this._speedMeter.stop();
+            this._speedMeter = null;
+        }
         super.destroy();
     }
 });
