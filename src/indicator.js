@@ -45,36 +45,67 @@ class NetInfoIndicator extends PanelMenu.Button {
     }
 
     _buildMenu() {
-        this.titleItem = new PopupMenu.PopupMenuItem('NetInfo Gnome Extension V0.1')
-        this.menu.addMenuItem(this.titleItem);
+        this.mainBox = new St.BoxLayout({
+            vertical: true,
+            style_class: 'netinfo-menu-content'
+        });
 
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        this.topSection = new St.BoxLayout({
+            style_class: 'netinfo-top-section',
+            x_expand: true
+        });
 
-        this.ipMenuItem = new PopupMenu.PopupMenuItem('IP: Fetching...', { reactive: false });
-        this.menu.addMenuItem(this.ipMenuItem);
+        this.infoBox = new St.BoxLayout({
+            vertical: true,
+            style_class: 'netinfo-info-box',
+            x_expand: true
+        });
 
-        this.cityMenuItem = new PopupMenu.PopupMenuItem('City: ...', { reactive: false });
-        this.menu.addMenuItem(this.cityMenuItem);
+        this.titleLabel = new St.Label({
+            text: 'Network Information',
+            style_class: 'netinfo-label-title'
+        });
+        this.infoBox.add_child(this.titleLabel);
 
-        this.ispMenuItem = new PopupMenu.PopupMenuItem('ISP: ...', { reactive: false });
-        this.menu.addMenuItem(this.ispMenuItem);
+        this.ipLabel = new St.Label({ text: 'IP: Fetching...' });
+        this.cityLabel = new St.Label({ text: 'City: ...' });
+        this.ispLabel = new St.Label({ text: 'ISP: ...' });
+        this.vpnLabel = new St.Label({ text: 'VPN: Checking...' });
 
-        this.vpnMenuItem = new PopupMenu.PopupMenuItem('VPN: Checking...', { reactive: false });
-        this.menu.addMenuItem(this.vpnMenuItem);
+        this.infoBox.add_child(this.ipLabel);
+        this.infoBox.add_child(this.cityLabel);
+        this.infoBox.add_child(this.ispLabel);
+        this.infoBox.add_child(this.vpnLabel);
 
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        this.topSection.add_child(this.infoBox);
+        
+        this.mainBox.add_child(this.topSection);
 
-        this.mapTitle = new PopupMenu.PopupMenuItem('Geolocation:', { reactive: false });
-        this.menu.addMenuItem(this.mapTitle);
-        this.mapContainer = new PopupMenu.PopupBaseMenuItem({ reactive: false, can_focus: false });
+        // Separator
+        this.mainBox.add_child(new PopupMenu.PopupSeparatorMenuItem().actor);
+
+        // Map Section
+        this.mapTitle = new St.Label({
+            text: 'Geolocation',
+            style_class: 'netinfo-label-title',
+            style: 'margin-top: 10px; margin-bottom: 5px;'
+        });
+        this.mainBox.add_child(this.mapTitle);
+
         this.mapBin = new St.Bin({
-            x_align: Clutter.ActorAlign.CENTER,
-            y_align: Clutter.ActorAlign.CENTER,
-            style: 'border-radius: 12px; width: 256px; height: 256px; margin: 10px; background-color: #333;'
+            style_class: 'netinfo-map-bin',
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER
         });
         
-        this.mapContainer.add_child(this.mapBin);
-        this.menu.addMenuItem(this.mapContainer);
+        this.mainBox.add_child(this.mapBin);
+
+        this.menuItem = new PopupMenu.PopupBaseMenuItem({
+            reactive: false,
+            can_focus: false
+        });
+        this.menuItem.add_child(this.mainBox);
+        this.menu.addMenuItem(this.menuItem);
     }
     
     async _updateMenuData() {
@@ -88,40 +119,37 @@ class NetInfoIndicator extends PanelMenu.Button {
                 this.icon.gicon = this._iconEnabled;
                 this.icon.remove_style_class_name('vpn-disabled');
                 this.icon.add_style_class_name('vpn-enabled');
-                this.vpnMenuItem.label.set_text(`VPN: ${vpn}`);
+                this.vpnLabel.set_text(`VPN: ${vpn}`);
             } else {
                 this.icon.gicon = this._iconDisabled;
                 this.icon.remove_style_class_name('vpn-enabled');
                 this.icon.add_style_class_name('vpn-disabled');
-                this.vpnMenuItem.label.set_text('VPN: Disconnected');
+                this.vpnLabel.set_text('VPN: Disconnected');
             }
 
             if (ipData) {
                 this.label.set_text(`- ${ipData.flag}`);
-                this.ipMenuItem.label.set_text(`Public IP: ${ipData.flag} ${ipData.ip}`);
-                this.cityMenuItem.label.set_text(`City: ${ipData.city || 'Unknown'}`);
-                this.ispMenuItem.label.set_text(`ISP: ${ipData.isp || 'Unknown'}`);
+                this.ipLabel.set_text(`Public IP: ${ipData.flag} ${ipData.ip}`);
+                this.cityLabel.set_text(`City: ${ipData.city || 'Unknown'}`);
+                this.ispLabel.set_text(`ISP: ${ipData.isp || 'Unknown'}`);
 
                 if (ipData.latitude && ipData.longitude) {
                     const cacheDir = this._extension.dir.get_child('cache').get_path();
-                    const mapPath = await downloadMapTile(ipData.latitude, ipData.longitude, 12, cacheDir);
+                    const mapPath = await downloadMapTile(ipData.latitude, ipData.longitude, 13, cacheDir);
 
                     if (mapPath && this.mapBin) {
                         this.mapBin.style = `
-                            border-radius: 12px;
-                            width: 256px; 
-                            height: 256px; 
-                            margin: 10px;
                             background-image: url("file://${mapPath}");
                             background-size: cover;
+                            background-position: center;
                         `;
                     }
                 }
             } else {
                 this.label.set_text(' API Offline'); 
-                this.ipMenuItem.label.set_text('Public IP: Not found');
-                this.cityMenuItem.label.set_text('City: Not found');
-                this.ispMenuItem.label.set_text('ISP: Not found');
+                this.ipLabel.set_text('Public IP: Not found');
+                this.cityLabel.set_text('City: Not found');
+                this.ispLabel.set_text('ISP: Not found');
             }
 
         } catch (e) {

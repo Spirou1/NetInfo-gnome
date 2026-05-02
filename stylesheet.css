@@ -10,3 +10,30 @@
 .vpn-disabled {
     color: #ff5555;
 }
+
+/* Expanded Menu Styles */
+.netinfo-menu-content {
+    min-width: 450px;
+    padding: 10px;
+}
+
+.netinfo-top-section {
+    spacing: 15px;
+    margin-bottom: 10px;
+}
+
+.netinfo-info-box {
+    spacing: 5px;
+}
+
+.netinfo-map-bin {
+    border-radius: 12px;
+    width: 450px; 
+    height: 250px;
+    background-color: #242424;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.netinfo-label-title {
+    font-weight: bold;
+}

@@ -19,15 +19,10 @@ export function getTileCoords(lat, lon, zoom) {
 }
 
 export async function downloadMapTile(lat, lon, zoom, cachePath) {
-  const coords = getTileCoords(lat, lon, zoom);
-  const url = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
+  const url = `https://static-maps.yandex.ru/1.x/?ll=${lon},${lat}&z=${zoom}&l=map&size=450,250&lang=en_US`;
 
   const message = Soup.Message.new("GET", url);
-  message.request_headers.append(
-    "User-Agent",
-    "NetInfoExtension/1.0 (seu_nome@email.com)",
-  );
-
+  
   try {
     const bytes = await _session.send_and_read_async(
       message,
@@ -36,7 +31,7 @@ export async function downloadMapTile(lat, lon, zoom, cachePath) {
     );
 
     if (message.status_code !== Soup.Status.OK) {
-      throw new Error(`OSM Error: ${message.status_code}`);
+      throw new Error(`Static Map API Error: ${message.status_code}`);
     }
 
     const dir = Gio.File.new_for_path(cachePath);
