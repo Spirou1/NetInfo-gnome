@@ -1,0 +1,7 @@
+{
+  "name": "NetInfo",
+  "description": "Simple extension that shows some networking information such as IP, location, VPN, etc.",
+  "uuid": "netinfo@enzospironelli.com.br",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "settings-schema": "org.gnome.shell.extensions.netinfo"
+}
