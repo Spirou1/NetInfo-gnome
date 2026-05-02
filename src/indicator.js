@@ -79,35 +79,81 @@ class NetInfoIndicator extends PanelMenu.Button {
 
         this.ipLabel = new St.Label({ 
             text: 'IP: Fetching...',
-            style_class: 'labels-text'
+            style_class: 'labels-text text-truncate'
         });
 
         this.cityLabel = new St.Label({ 
             text: 'City: ...',
-            style_class: 'labels-text'
+            style_class: 'labels-text text-truncate'
         });
 
         this.ispLabel = new St.Label({ 
             text: 'ISP: ...',
-            style_class: 'labels-text' 
+            style_class: 'labels-text text-truncate' 
         });
 
         this.vpnLabel = new St.Label({ 
             text: 'VPN: Checking...',
-            style_class: 'labels-text' 
+            style_class: 'labels-text text-truncate' 
+        });
+
+        this.timezoneLabel = new St.Label({ 
+            text: 'Timezone: Checking...',
+            style_class: 'labels-text text-truncate' 
+        });
+
+        this.graphContainer = new St.BoxLayout({
+            style_class: 'graph-container',
+            vertical: true, 
+            y_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            x_expand: true 
         });
 
         this.infoBox.add_child(this.ipLabel);
         this.infoBox.add_child(this.cityLabel);
         this.infoBox.add_child(this.ispLabel);
         this.infoBox.add_child(this.vpnLabel);
+        this.infoBox.add_child(this.timezoneLabel);
+
+        this.trafficColumn = new St.BoxLayout({
+            vertical: true,
+            x_expand: true
+        });
+
+        this.graphTitleLabel = new St.Label({
+            text: 'Traffic:',
+            style_class: 'netinfo-label-title'
+        });
+
+        this.graphContainer = new St.BoxLayout({
+            style_class: 'graph-container',
+            vertical: true, 
+            y_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            x_expand: true 
+        });
+
+        this.infoBox.add_child(this.ipLabel);
+        this.infoBox.add_child(this.cityLabel);
+        this.infoBox.add_child(this.ispLabel);
+        this.infoBox.add_child(this.vpnLabel);
+        this.infoBox.add_child(this.timezoneLabel);
 
         let speedLabel = this._speedMeter.getWidget();
-        speedLabel.add_style_class_name('labels-text'); 
-        this.infoBox.add_child(speedLabel);
+        speedLabel.add_style_class_name('labels-text');
+        
+        let speedGraph = this._speedMeter.getGraphWidget();
+
+        this.graphContainer.add_child(speedLabel);           
+        this.graphContainer.add_child(speedGraph);          
+
+        this.trafficColumn.add_child(this.graphTitleLabel);
+        this.trafficColumn.add_child(this.graphContainer);
 
         this.topSection.add_child(this.infoBox);
-        
+        this.topSection.add_child(this.trafficColumn);
+
         this.mainBox.add_child(this.topSection);
 
         // Separator
@@ -169,9 +215,10 @@ class NetInfoIndicator extends PanelMenu.Button {
 
             if (ipData) {
                 this.label.set_text(`- ${ipData.flag}`);
-                this.ipLabel.set_text(`Public IP: ${ipData.flag} ${ipData.ip}`);
+                this.ipLabel.set_text(`Public IP: ${ipData.flag} - ${ipData.ip}`);
                 this.cityLabel.set_text(`City: ${ipData.city || 'Unknown'}`);
                 this.ispLabel.set_text(`ISP: ${ipData.isp || 'Unknown'}`);
+                this.timezoneLabel.set_text(`Timezone: ${ipData.timezone || 'Unknown'}`);
 
                 if (ipData.latitude && ipData.longitude) {
                     const cacheDir = this._extension.dir.get_child('cache').get_path();
@@ -190,6 +237,7 @@ class NetInfoIndicator extends PanelMenu.Button {
                 this.ipLabel.set_text('Public IP: Not found');
                 this.cityLabel.set_text('City: Not found');
                 this.ispLabel.set_text('ISP: Not found');
+                this.timezoneLabel.set_text('Timezone: Not found');
             }
 
         } catch (e) {

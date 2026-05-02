@@ -30,6 +30,7 @@ export async function fetchIPData() {
       longitude: data.longitude,
       city: data.city,
       isp: data.connection?.isp,
+      timezone: data.timezone?.id,
     };
   } catch (e) {
     console.error(`[NetInfo] Errror while making request: ${e.message}`);

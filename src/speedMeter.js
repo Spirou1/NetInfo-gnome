@@ -2,6 +2,7 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import Shell from 'gi://Shell';
+import { SpeedGraph } from './speedGraph.js'; 
 
 export class SpeedMeter {
     constructor() {
@@ -10,14 +11,19 @@ export class SpeedMeter {
             y_align: Clutter.ActorAlign.CENTER,
         });
         
+        this.graph = new SpeedGraph();
+
         this.timeoutId = 0;
         this.prevRx = 0;
         this.prevTx = 0;
     }
 
-
     getWidget() {
         return this.label;
+    }
+
+    getGraphWidget() {
+        return this.graph.getWidget(); 
     }
 
     start() {
@@ -25,15 +31,10 @@ export class SpeedMeter {
         this.prevRx = rx;
         this.prevTx = tx;
 
-
-        this.timeoutId = GLib.timeout_add_seconds(
-            GLib.PRIORITY_DEFAULT,
-            1,
-            () => {
-                this._update();
-                return GLib.SOURCE_CONTINUE; 
-            }
-        );
+        this.timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
+            this._update();
+            return GLib.SOURCE_CONTINUE; 
+        });
     }
 
     stop() {
@@ -41,10 +42,7 @@ export class SpeedMeter {
             GLib.Source.remove(this.timeoutId);
             this.timeoutId = 0;
         }
-        if (this.label) {
-            this.label.destroy();
-            this.label = null;
-        }
+        if (this.label) this.label.destroy();
     }
 
     _getBytes() {
@@ -58,9 +56,7 @@ export class SpeedMeter {
                     tx += parseInt(cols[9]) || 0;
                 }
             }
-        } catch (e) {
-            console.error(`Erro ao ler /proc/net/dev: ${e}`);
-        }
+        } catch (e) {}
         return [rx, tx];
     }
 
@@ -72,6 +68,8 @@ export class SpeedMeter {
         this.prevTx = tx;
 
         this.label.set_text(`⇅ ${this._formatSpeed(speed)}`);
+        
+        this.graph.addPoint(speed); 
     }
 
     _formatSpeed(speedKBs) {
