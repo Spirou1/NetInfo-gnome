@@ -1,4 +1,4 @@
-import { fetchPublicIP, fetchVPNname } from './netInfo.js';
+import { fetchIPData, fetchVPNname } from './netInfo.js';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -46,12 +46,12 @@ class NetInfoIndicator extends PanelMenu.Button {
     
     async _updateMenuData() {
         try {  
-            const ip = await fetchPublicIP();
+            const ipData = await fetchIPData();
             const vpn = fetchVPNname();
 
-            if (ip) {
-                this.label.set_text(` ${ip}`);
-                this.ipMenuItem.label.set_text(`Public IP: ${ip}`);
+            if (ipData) {
+                this.label.set_text(`${ipData.flag} IP: ${ipData.ip}`);
+                this.ipMenuItem.label.set_text(`Public IP: ${ipData.flag} ${ipData.ip}`);
             } else {
                 this.ipMenuItem.label.set_text('Public IP: Not found');
             }

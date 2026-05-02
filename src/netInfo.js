@@ -1,38 +1,40 @@
 import Gio from "gi://Gio";
+import GLib from "gi://GLib";
+import Soup from "gi://Soup";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
-export function fetchPublicIP() {
-  return new Promise((resolve) => {
-    try {
-      const proc = new Gio.Subprocess({
-        argv: ["curl", "-s", "https://api.ipify.org"],
-        flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
-      });
+const _session = new Soup.Session();
 
-      proc.init(null);
-      
-      proc.communicate_utf8_async(null, null, (procObj, res) => {
-        try {
-          const [, stdout, stderr] = procObj.communicate_utf8_finish(res);
+export async function fetchIPData() {
+  const message = Soup.Message.new("GET", "https://ipwho.is/");
 
-          if (procObj.get_successful() && stdout) {
-            resolve(stdout.trim()); 
-          } else {
-            if (stderr) {
-              console.error(`[NetInfo] curl error: ${stderr}`);
-            }
-            resolve(null); 
-          }
-        } catch (e) {
-          console.error(`[NetInfo] Error reading output: ${e}`);
-          resolve(null);
-        }
-      });
-    } catch (e) {
-      console.error(`[NetInfo] Failed to spawn curl: ${e.message}`);
-      resolve(null);
+  try {
+    const bytes = await _session.send_and_read_async(
+      message,
+      GLib.PRIORITY_DEFAULT,
+      null,
+    );
+
+    if (message.status_code !== Soup.Status.OK) {
+      console.error(`[NetInfo] Erro HTTP: ${message.status_code}`);
+      return null;
     }
-  });
+
+    const decoder = new TextDecoder("utf-8");
+    const data = JSON.parse(decoder.decode(bytes.get_data()));
+
+    return {
+      ip: data.ip,
+      flag: data.flag?.emoji || "🌐",
+      latitude: data.latitude,
+      longitude: data.longitude,
+      city: data.city,
+      isp: data.isp,
+    };
+  } catch (e) {
+    console.error(`[NetInfo] Erro na requisição: ${e.message}`);
+    return null;
+  }
 }
 
 export function fetchVPNname() {
