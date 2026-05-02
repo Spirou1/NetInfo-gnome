@@ -1,1 +1,12 @@
 /* Add your custom extension styling here */
+.netinfo-icon {
+    icon-size: 28px;
+}
+
+.vpn-enabled {
+    color: #50fa7b; 
+}
+
+.vpn-disabled {
+    color: #ff5555;
+}

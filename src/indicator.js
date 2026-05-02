@@ -20,9 +20,15 @@ class NetInfoIndicator extends PanelMenu.Button {
             style_class: 'panel-button-content'
         });
 
+        const iconEnabledFile = Gio.File.new_for_path(`${this._extension.path}/icons/vpn-caps-symbolic.svg`);
+        const iconDisabledFile = Gio.File.new_for_path(`${this._extension.path}/icons/vpn-caps-disabled-symbolic.svg`);
+        
+        this._iconEnabled = Gio.FileIcon.new(iconEnabledFile);
+        this._iconDisabled = Gio.FileIcon.new(iconDisabledFile);
+
         this.icon = new St.Icon({
-            icon_name: 'network-wired-symbolic',
-            style_class: 'system-status-icon'
+            gicon: this._iconDisabled,
+            style_class: 'system-status-icon netinfo-icon'
         });
 
         this.label = new St.Label({
@@ -78,8 +84,20 @@ class NetInfoIndicator extends PanelMenu.Button {
 
             if (!this.label) return;
 
+            if (vpn) {
+                this.icon.gicon = this._iconEnabled;
+                this.icon.remove_style_class_name('vpn-disabled');
+                this.icon.add_style_class_name('vpn-enabled');
+                this.vpnMenuItem.label.set_text(`VPN: ${vpn}`);
+            } else {
+                this.icon.gicon = this._iconDisabled;
+                this.icon.remove_style_class_name('vpn-enabled');
+                this.icon.add_style_class_name('vpn-disabled');
+                this.vpnMenuItem.label.set_text('VPN: Disconnected');
+            }
+
             if (ipData) {
-                this.label.set_text(` ${ipData.flag} IP: ${ipData.ip}`);
+                this.label.set_text(`- ${ipData.flag}`);
                 this.ipMenuItem.label.set_text(`Public IP: ${ipData.flag} ${ipData.ip}`);
                 this.cityMenuItem.label.set_text(`City: ${ipData.city || 'Unknown'}`);
                 this.ispMenuItem.label.set_text(`ISP: ${ipData.isp || 'Unknown'}`);
@@ -104,12 +122,6 @@ class NetInfoIndicator extends PanelMenu.Button {
                 this.ipMenuItem.label.set_text('Public IP: Not found');
                 this.cityMenuItem.label.set_text('City: Not found');
                 this.ispMenuItem.label.set_text('ISP: Not found');
-            }
-
-            if (vpn) {
-                this.vpnMenuItem.label.set_text(`VPN: ${vpn}`);
-            } else {
-                this.vpnMenuItem.label.set_text('VPN: Disconnected');
             }
 
         } catch (e) {
