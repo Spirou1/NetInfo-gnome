@@ -50,6 +50,13 @@ class NetInfoIndicator extends PanelMenu.Button {
             style_class: 'netinfo-menu-content'
         });
 
+        this.mainTitle = new St.Label({
+            text: 'NetInfo Gnome Extension V0.1',
+            style_class: 'netinfo-main-title'
+        });
+        this.mainBox.add_child(this.mainTitle);
+        this.mainBox.add_child(new PopupMenu.PopupSeparatorMenuItem().actor);
+
         this.topSection = new St.BoxLayout({
             style_class: 'netinfo-top-section',
             x_expand: true
@@ -67,10 +74,25 @@ class NetInfoIndicator extends PanelMenu.Button {
         });
         this.infoBox.add_child(this.titleLabel);
 
-        this.ipLabel = new St.Label({ text: 'IP: Fetching...' });
-        this.cityLabel = new St.Label({ text: 'City: ...' });
-        this.ispLabel = new St.Label({ text: 'ISP: ...' });
-        this.vpnLabel = new St.Label({ text: 'VPN: Checking...' });
+        this.ipLabel = new St.Label({ 
+            text: 'IP: Fetching...',
+            style_class: 'labels-text'
+        });
+
+        this.cityLabel = new St.Label({ 
+            text: 'City: ...',
+            style_class: 'labels-text'
+        });
+
+        this.ispLabel = new St.Label({ 
+            text: 'ISP: ...',
+            style_class: 'labels-text' 
+        });
+
+        this.vpnLabel = new St.Label({ 
+            text: 'VPN: Checking...',
+            style_class: 'labels-text' 
+        });
 
         this.infoBox.add_child(this.ipLabel);
         this.infoBox.add_child(this.cityLabel);
@@ -104,6 +126,17 @@ class NetInfoIndicator extends PanelMenu.Button {
             reactive: false,
             can_focus: false
         });
+        this.menuItem.add_child(this.mainBox);
+        this.menu.addMenuItem(this.menuItem);
+
+        this.infoLabel = new St.Label({ 
+            text: 'For more info, check out the repo at: github.com/Spirou1/NetInfo-gnome',
+            style_class: 'info-text',
+            x_expand: true,
+            x_align: Clutter.ActorAlign.END
+        });
+        this.mainBox.add_child(this.infoLabel)
+
         this.menuItem.add_child(this.mainBox);
         this.menu.addMenuItem(this.menuItem);
     }
