@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.netinfo" path="/org/gnome/shell/extensions/netinfo/">
+    <key name="show-graph" type="b">
+      <default>true</default>
+      <summary>Show Traffic Graph</summary>
+    </key>
+    <key name="show-map" type="b">
+      <default>true</default>
+      <summary>Show Geolocation Map</summary>
+    </key>
+    <key name="show-flag" type="b">
+      <default>true</default>
+      <summary>Show Country Flag in Panel</summary>
+    </key>
+    <key name="show-isp" type="b">
+      <default>true</default>
+      <summary>Show ISP Information</summary>
+    </key>
+  </schema>
+</schemalist>

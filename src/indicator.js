@@ -16,6 +16,10 @@ class NetInfoIndicator extends PanelMenu.Button {
         super._init(0.0, 'NetInfoIndicator', false);
         
         this._extension = extensionObject;
+        this._settings = this._extension.getSettings('org.gnome.shell.extensions.netinfo');
+        
+        this._settingsSignal = this._settings.connect('changed', this._applyLiveSettings.bind(this));
+
         this._speedMeter = new SpeedMeter();
 
         this.box = new St.BoxLayout({
@@ -24,7 +28,9 @@ class NetInfoIndicator extends PanelMenu.Button {
 
         const iconEnabledFile = Gio.File.new_for_path(`${this._extension.path}/icons/vpn-caps-symbolic.svg`);
         const iconDisabledFile = Gio.File.new_for_path(`${this._extension.path}/icons/vpn-caps-disabled-symbolic.svg`);
+        const iconSettingsFile = Gio.File.new_for_path(`${this._extension.path}/icons/settings-symbolic.svg`);
         
+        this._iconSettings = Gio.FileIcon.new(iconSettingsFile);
         this._iconEnabled = Gio.FileIcon.new(iconEnabledFile);
         this._iconDisabled = Gio.FileIcon.new(iconDisabledFile);
 
@@ -47,17 +53,82 @@ class NetInfoIndicator extends PanelMenu.Button {
         this._speedMeter.start();
     }
 
+    // --- ALTERAÇÃO 2: Nova função que esconde ou mostra os elementos na hora ---
+    _applyLiveSettings() {
+        if (this._settings.get_boolean('show-graph')) {
+            this.trafficColumn.show();
+        } else {
+            this.trafficColumn.hide();
+        }
+
+        if (this._settings.get_boolean('show-map')) {
+            this.mapTitle.show();
+            this.mapBin.show();
+        } else {
+            this.mapTitle.hide();
+            this.mapBin.hide();
+        }
+
+        if (this._settings.get_boolean('show-isp')) {
+            this.ispLabel.show();
+        } else {
+            this.ispLabel.hide();
+        }
+
+        if (this._lastIpData) {
+            if (this._settings.get_boolean('show-flag')) {
+                this.label.set_text(`- ${this._lastIpData.flag}`);
+            } else {
+                this.label.set_text('');
+            }
+        }
+    }
+
     _buildMenu() {
         this.mainBox = new St.BoxLayout({
             vertical: true,
             style_class: 'netinfo-menu-content'
         });
 
+        this.headerBox = new St.BoxLayout({
+            vertical: false,
+            x_expand: true,
+            y_expand: false, 
+            y_align: Clutter.ActorAlign.CENTER,
+            style: 'margin-bottom: 10px;'
+        });
+
         this.mainTitle = new St.Label({
             text: 'NetInfo Gnome Extension V0.1',
-            style_class: 'netinfo-main-title'
+            style_class: 'netinfo-main-title',
+            y_align: Clutter.ActorAlign.CENTER,
+            x_expand: true,
+            style: 'border-bottom: 0px; margin-bottom: 0px; padding-bottom: 0px;' 
         });
-        this.mainBox.add_child(this.mainTitle);
+
+        this.settingsButton = new St.Button({
+            child: new St.Icon({
+                gicon: this._iconSettings, 
+                icon_size: 20,
+                style_class: 'system-status-icon'
+            }),
+            style_class: 'settings-button', 
+            y_align: Clutter.ActorAlign.CENTER,
+            x_align: Clutter.ActorAlign.END,
+            can_focus: true,
+            track_hover: true
+        });
+
+        this.settingsButton.connect('clicked', () => {
+            this._extension.openPreferences();
+            this.menu.close();
+        });
+
+        this.headerBox.add_child(this.mainTitle);
+        this.headerBox.add_child(this.settingsButton);
+
+        this.mainBox.add_child(this.headerBox);
+        
         this.mainBox.add_child(new PopupMenu.PopupSeparatorMenuItem().actor);
 
         this.topSection = new St.BoxLayout({
@@ -102,14 +173,7 @@ class NetInfoIndicator extends PanelMenu.Button {
             style_class: 'labels-text text-truncate' 
         });
 
-        this.graphContainer = new St.BoxLayout({
-            style_class: 'graph-container',
-            vertical: true, 
-            y_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
-            x_expand: true 
-        });
-
+        // --- ALTERAÇÃO 3: Removida a re-declaração duplicada da infoBox e do graphContainer ---
         this.infoBox.add_child(this.ipLabel);
         this.infoBox.add_child(this.cityLabel);
         this.infoBox.add_child(this.ispLabel);
@@ -133,12 +197,6 @@ class NetInfoIndicator extends PanelMenu.Button {
             y_align: Clutter.ActorAlign.CENTER,
             x_expand: true 
         });
-
-        this.infoBox.add_child(this.ipLabel);
-        this.infoBox.add_child(this.cityLabel);
-        this.infoBox.add_child(this.ispLabel);
-        this.infoBox.add_child(this.vpnLabel);
-        this.infoBox.add_child(this.timezoneLabel);
 
         let speedLabel = this._speedMeter.getWidget();
         speedLabel.add_style_class_name('labels-text');
@@ -192,12 +250,18 @@ class NetInfoIndicator extends PanelMenu.Button {
 
         this.menuItem.add_child(this.mainBox);
         this.menu.addMenuItem(this.menuItem);
+
+        // --- ALTERAÇÃO 4: Aplica as configurações na interface recém-construída ---
+        this._applyLiveSettings();
     }
     
     async _updateMenuData() {
         try {  
             const ipData = await fetchIPData();
             const vpn = fetchVPNname();
+
+            // --- ALTERAÇÃO 5: Salva a API na classe para que a bandeira seja trocada sem requisição ---
+            this._lastIpData = ipData;
 
             if (!this.label) return;
 
@@ -214,7 +278,6 @@ class NetInfoIndicator extends PanelMenu.Button {
             }
 
             if (ipData) {
-                this.label.set_text(`- ${ipData.flag}`);
                 this.ipLabel.set_text(`Public IP: ${ipData.flag} - ${ipData.ip}`);
                 this.cityLabel.set_text(`City: ${ipData.city || 'Unknown'}`);
                 this.ispLabel.set_text(`ISP: ${ipData.isp || 'Unknown'}`);
@@ -232,6 +295,10 @@ class NetInfoIndicator extends PanelMenu.Button {
                         `;
                     }
                 }
+
+                // --- ALTERAÇÃO 6: Garante que as labels recém-atualizadas sigam as regras do settings ---
+                this._applyLiveSettings();
+
             } else {
                 this.label.set_text(' API Offline'); 
                 this.ipLabel.set_text('Public IP: Not found');
@@ -250,6 +317,12 @@ class NetInfoIndicator extends PanelMenu.Button {
     }
 
     destroy() {
+        // --- ALTERAÇÃO 7: Desconecta o sinal para não vazar memória ---
+        if (this._settingsSignal) {
+            this._settings.disconnect(this._settingsSignal);
+            this._settingsSignal = null;
+        }
+
         if (this._speedMeter) {
             this._speedMeter.stop();
             this._speedMeter = null;
