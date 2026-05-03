@@ -6,6 +6,8 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
+import NM from 'gi://NM';
+import GLib from 'gi://GLib';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
@@ -19,6 +21,27 @@ class NetInfoIndicator extends PanelMenu.Button {
         this._settings = this._extension.getSettings('org.gnome.shell.extensions.netinfo');
         
         this._settingsSignal = this._settings.connect('changed', this._applyLiveSettings.bind(this));
+
+        // Network Monitoring
+        try {
+            this._nmClient = NM.Client.new(null);
+            this._nmSignalId = this._nmClient.connect('notify::state', () => {
+                console.debug('[NetInfo] Signal received: notify::state');
+                this._onNetworkChanged();
+            });
+            this._nmActiveConnSignalId = this._nmClient.connect('notify::active-connections', () => {
+                console.debug('[NetInfo] Signal received: notify::active-connections');
+                this._onNetworkChanged();
+            });
+            this._nmConnectivitySignalId = this._nmClient.connect('notify::connectivity', () => {
+                console.debug('[NetInfo] Signal received: notify::connectivity');
+                this._onNetworkChanged();
+            });
+            console.debug('[NetInfo] NetworkManager client initialized and signals connected');
+        } catch (e) {
+            console.error(`[NetInfo] Error initializing NetworkManager client: ${e.message}`);
+        }
+        this._networkTimeoutId = null;
 
         this._speedMeter = new SpeedMeter();
 
@@ -53,7 +76,20 @@ class NetInfoIndicator extends PanelMenu.Button {
         this._speedMeter.start();
     }
 
-    // --- ALTERAÇÃO 2: Nova função que esconde ou mostra os elementos na hora ---
+    _onNetworkChanged() {
+        if (this._networkTimeoutId) {
+            GLib.Source.remove(this._networkTimeoutId);
+            this._networkTimeoutId = null;
+        }
+
+        this._networkTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
+            console.debug('[NetInfo] Network change detected, updating data...');
+            this._updateMenuData();
+            this._networkTimeoutId = null;
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
     _applyLiveSettings() {
         if (this._settings.get_boolean('show-graph')) {
             this.trafficColumn.show();
@@ -251,16 +287,14 @@ class NetInfoIndicator extends PanelMenu.Button {
         this.menuItem.add_child(this.mainBox);
         this.menu.addMenuItem(this.menuItem);
 
-        // --- ALTERAÇÃO 4: Aplica as configurações na interface recém-construída ---
         this._applyLiveSettings();
     }
     
     async _updateMenuData() {
         try {  
             const ipData = await fetchIPData();
-            const vpn = fetchVPNname();
+            const vpn = fetchVPNname(this._nmClient);
 
-            // --- ALTERAÇÃO 5: Salva a API na classe para que a bandeira seja trocada sem requisição ---
             this._lastIpData = ipData;
 
             if (!this.label) return;
@@ -296,7 +330,6 @@ class NetInfoIndicator extends PanelMenu.Button {
                     }
                 }
 
-                // --- ALTERAÇÃO 6: Garante que as labels recém-atualizadas sigam as regras do settings ---
                 this._applyLiveSettings();
 
             } else {
@@ -317,7 +350,26 @@ class NetInfoIndicator extends PanelMenu.Button {
     }
 
     destroy() {
-        // --- ALTERAÇÃO 7: Desconecta o sinal para não vazar memória ---
+        if (this._nmSignalId) {
+            this._nmClient.disconnect(this._nmSignalId);
+            this._nmSignalId = null;
+        }
+
+        if (this._nmActiveConnSignalId) {
+            this._nmClient.disconnect(this._nmActiveConnSignalId);
+            this._nmActiveConnSignalId = null;
+        }
+
+        if (this._nmConnectivitySignalId) {
+            this._nmClient.disconnect(this._nmConnectivitySignalId);
+            this._nmConnectivitySignalId = null;
+        }
+
+        if (this._networkTimeoutId) {
+            GLib.Source.remove(this._networkTimeoutId);
+            this._networkTimeoutId = null;
+        }
+
         if (this._settingsSignal) {
             this._settings.disconnect(this._settingsSignal);
             this._settingsSignal = null;

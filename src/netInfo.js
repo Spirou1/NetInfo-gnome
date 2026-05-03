@@ -38,8 +38,16 @@ export async function fetchIPData() {
   }
 }
 
-export function fetchVPNname() {
+export function fetchVPNname(nmClient) {
   try {
+    if (nmClient) {
+      const activeConnections = nmClient.get_active_connections() || [];
+      const vpnConn = activeConnections.find(conn => conn.vpn);
+      if (vpnConn) {
+        return vpnConn.id || "Connected";
+      }
+    }
+
     const quickSettings = Main.panel?.statusArea?.quickSettings;
     const vpnToggle = quickSettings?._network?._vpnToggle;
 
